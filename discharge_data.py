@@ -139,5 +139,6 @@ class DischargeData():
     
         return fig, ax
     
-d = DischargeData('inputs/cell_data.xlsx', nominal_capacity_Ah=2.2)
-d.plot(cropped=True)
+if __name__ == '__main__':
+    d = DischargeData('inputs/cell_data.xlsx', nominal_capacity_Ah=2.2)
+    d.plot(cropped=True)

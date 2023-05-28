@@ -18,7 +18,7 @@ class ModelBase(abc.ABC):
         pass
     
     @abc.abstractmethod
-    def modeled_terminal_voltage(self, dod, c_rate):
+    def Vt(self, dod, c_rate):
         pass
 
 class NonParametric(ModelBase):
@@ -30,7 +30,7 @@ class NonParametric(ModelBase):
         #extract vector of all discharge c_rates
         self.c_rates = self.data.data['C-rate'].unique()
         #extract vector of currents corresponding to c_rate
-        self.x = self.c_rates*(self.data.nominal_capacity_mAh/1000)
+        self.x = self.data.data['I [A]'].unique()
         
     def _get_y(self, dod):
         """interpolates voltage for each discharge curve at specified DoD and stacks
@@ -62,9 +62,9 @@ class NonParametric(ModelBase):
         """compute rs at given dod"""
         return self._get_params(dod)[0]
     
-    def modeled_terminal_voltage(self, dod, c_rate):
+    def Vt(self, dod, c_rate):
         """computes modeled voltage at given dod and discharge rate"""
-        return self.OCV(dod) - c_rate*(self.data.nominal_capacity_mAh/1000)*self.Rs(dod)
+        return self.OCV(dod) - c_rate*(self.data.nominal_capacity_Ah)*self.Rs(dod)
         
 class PolynomialFit(ModelBase):
     
@@ -116,21 +116,21 @@ class PolynomialFit(ModelBase):
         #polynomial to start at the highest degree
         return np.polyval(self.beta_coeff()[-1::-1], dod)
     
-    def modeled_terminal_voltage(self, dod, c_rate):
+    def Vt(self, dod, c_rate):
         """computes modeled voltage at given dod and discharge rate"""
-        return self.OCV(dod) - c_rate*(self.data.nominal_capacity_mAh/1000)*self.Rs(dod)
+        return self.OCV(dod) - c_rate*(self.data.nominal_capacity_Ah)*self.Rs(dod)
     
     
 def plot_model_fit(model, **kwargs):
     
     """convenience function that takes in model and plots it's fit over experimental data"""
     
-    fig, ax = model.data.plot_raw_data(**kwargs)
+    fig, ax = model.data.plot(cropped=True,**kwargs)
     ax.set_prop_cycle(None)
     
     dod = np.linspace(0, 1, 50)
-    for c_rate in model.data.df['C-rate'].unique():
-        v_modeled = model.modeled_terminal_voltage(dod, c_rate=c_rate)
+    for c_rate in model.data.data['C-rate'].unique():
+        v_modeled = model.Vt(dod, c_rate=c_rate)
         ax.plot(dod, v_modeled, ls='', marker='x', label='Modeled')
     
     fig.tight_layout()
