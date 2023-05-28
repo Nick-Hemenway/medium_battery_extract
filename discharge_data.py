@@ -6,7 +6,7 @@ from typing import Optional, Union
 
 class DischargeData():
     
-    def __init__(self, file: Union[Path, str], scale_factor: Optional[float]=None,
+    def __init__(self, file: Union[Path, str], nominal_capacity_Ah: float, scale_x: Optional[bool]=False,
                  dod_lower: float=0, dod_upper: float=1):
         """initialize the discharge data
 
@@ -15,14 +15,16 @@ class DischargeData():
         file : Union[Path, str]
             File path to excel spreadsheet containing discharge data. Excel file should
             contain multiple sheets with name format like "c_rate 0.5". Each sheet should 
-            contain two columns -- one for discharge capacity or depth of discharge (dod) 
-            data and one for the terminal voltage of the cell
+            contain two columns -- The first column can either be the discharge capacity in Ah
+            or the depth of discharge (DoD). If it is in Ah, scale_x, must be set to True
             
-        scale_factor : Optional[float], optional
-            Scale factor by which to scale the x-data to normalize it to DoD data. e.g.
-            this would be the nominal capacity of the cell in Ah or mAh. If None, the
-            data is assumed to already be DoD data and is not scaled. Data is scaled as:
-            scaled_x_data = x_data/scale_factor. By default None 
+        nominal_capacity_Ah: float
+            Nominal cell capacity in Ah, used to scale C-rates to current values and 
+            discharge capacity in Ah to DoD
+            
+        scale_x : Optional[bool], optional
+            Whether to scale x-data in Excel spreadsheets. Set to True if Excel file contains
+            discharge data in Ah, set to False if Excel file already contains DoD data. By default False
             
         dod_lower: float
             lower limit for cropping depth of discharge data for model extraction
@@ -31,14 +33,18 @@ class DischargeData():
             upper limit for cropping depth of discharge data for model extraction
         """
         
-                
-        self._data: pd.DataFrame #specify type of _data attribute
-        self.load_data(file=file, scale_factor=scale_factor) #load data into _data attribute
+        #specify data types for attributes set in "load_data" method
+        self._data: pd.DataFrame
+        self.nominal_capacity_Ah: float
+        
+        #load data from excel file
+        self.load_data(file=file, nominal_capacity_Ah=nominal_capacity_Ah, scale_x=scale_x) #load data into _data attribute
 
+        #store dod limits for cropped fit data
         self.dod_lower = dod_lower
         self.dod_upper = dod_upper
         
-    def load_data(self, file: Union[Path, str], scale_factor: Optional[float]=None) -> None:
+    def load_data(self, file: Union[Path, str], nominal_capacity_Ah: float, scale_x: Optional[bool]=False) -> None:
         """load excel file containing multiple sheets into single pandas DataFrame of long format
 
         Parameters
@@ -54,6 +60,7 @@ class DischargeData():
         
         #ensure that it is a Path object
         file = Path(file)
+        self.nominal_capacity_Ah = nominal_capacity_Ah
         
         #first load the workbook and extract the sheetnames
         wb = load_workbook(filename=file)
@@ -70,12 +77,13 @@ class DischargeData():
             #load data into pandas dataframe (we are overwriting the column names specified in the spreadsheet)
             #the spreadsheet must have a first row of capacity in mAh and the second column of voltage
             df = pd.read_excel(file, sheet_name=sheet, names=['DoD', 'V'])
-            if scale_factor is not None:
-                df['DoD'] /= scale_factor #normalize data to DoD if scale factor is provided
+            if scale_x:
+                df['DoD'] /= self.nominal_capacity_Ah #normalize data to DoD if provided in Ah
             
             #add additional computed columns to the dataframe
             df['C-rate'] = c_rate
             df['SoC'] = 1 - df['DoD']
+            df['I [A]'] = df['C-rate']*self.nominal_capacity_Ah
             
             dfs.append(df)
             
