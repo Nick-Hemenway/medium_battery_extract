@@ -10,7 +10,7 @@ wb = openpyxl.load_workbook(f)
 sheets = wb.sheetnames
 
 fig, ax = plt.subplots()
-ax.set_xlabel('Capacity [mAh]')
+ax.set_xlabel('DoD [-]')
 ax.set_ylabel('Voltage [V]')
 
 for sheet in sheets:
@@ -20,6 +20,6 @@ for sheet in sheets:
 ax.legend(facecolor='white')
 fig.tight_layout()
 
-
+fig.savefig('outputs/raw_cell_data.png')
 
 
