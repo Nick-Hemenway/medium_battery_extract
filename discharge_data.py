@@ -14,7 +14,7 @@ class DischargeData():
         ----------
         file : Union[Path, str]
             File path to excel spreadsheet containing discharge data. Excel file should
-            contain multiple sheets with name format like "c_rate 0.5". Each sheet should 
+            contain multiple sheets with name format of the form "c_rate 0.5". Each sheet should 
             contain two columns -- The first column can either be the discharge capacity in Ah
             or the depth of discharge (DoD). If it is in Ah, scale_x, must be set to True
             
@@ -23,7 +23,7 @@ class DischargeData():
             discharge capacity in Ah to DoD
             
         scale_x : Optional[bool], optional
-            Whether to scale x-data in Excel spreadsheets. Set to True if Excel file contains
+            Whether to scale x-data (first column) in Excel spreadsheets. Set to True if Excel file contains
             discharge data in Ah, set to False if Excel file already contains DoD data. By default False
             
         dod_lower: float
@@ -75,7 +75,7 @@ class DischargeData():
             #extract c-rate from sheet name (this assumes sheets are named with convention "c_rate 1.2" or similar)
             c_rate = float(sheet.split()[-1])
             #load data into pandas dataframe (we are overwriting the column names specified in the spreadsheet)
-            #the spreadsheet must have a first row of capacity in mAh and the second column of voltage
+            #the spreadsheet must have a first row of capacity in Ah or DoD and the second column of voltage
             df = pd.read_excel(file, sheet_name=sheet, names=['DoD', 'V'])
             if scale_x:
                 df['DoD'] /= self.nominal_capacity_Ah #normalize data to DoD if provided in Ah
@@ -87,7 +87,7 @@ class DischargeData():
             
             dfs.append(df)
             
-        #combine all of the dataframes into a single dataframe and return
+        #combine all of the dataframes into a single dataframe
         self._data = pd.concat(dfs, ignore_index=True)
     
     @property
@@ -106,8 +106,9 @@ class DischargeData():
             upper bound of DoD to chop data for fitting
         """
         return self.data[(self.data['DoD']>self.dod_lower) & (self.data['DoD']<self.dod_upper)].copy()
-        
-    def plot(self, **kwargs) -> tuple:
+    
+    
+    def plot(self, cropped=False, **kwargs) -> tuple:
         """convenience function to plot the raw constant current discharge curves
 
         Parameters
@@ -121,37 +122,10 @@ class DischargeData():
             tuple containing the figure and axes objects created
         """
         
-        return self._plot(self.data, **kwargs)
-    
-    def plot_cropped(self, **kwargs) -> tuple:
-        """convenience function to plot the raw constant current discharge curves
-
-        Parameters
-        ----------
-        kwargs : dict
-            key word arguments to supply to the subplots command in matplotlib
-
-        Returns
-        -------
-        tuple
-            tuple containing the figure and axes objects created
-        """
-    
-        return self._plot(self.data_cropped)
-    
-    def _plot(self, data, **kwargs) -> tuple:
-        """convenience function to plot the raw constant current discharge curves
-
-        Parameters
-        ----------
-        kwargs : dict
-            key word arguments to supply to the subplots command in matplotlib
-
-        Returns
-        -------
-        tuple
-            tuple containing the figure and axes objects created
-        """
+        if cropped:
+            data = self.data_cropped
+        else:
+            data = self.data
         
         fig, ax = plt.subplots(**kwargs)
         for (c_rate, df) in data.groupby('C-rate'):
@@ -165,3 +139,5 @@ class DischargeData():
     
         return fig, ax
     
+d = DischargeData('inputs/cell_data.xlsx', nominal_capacity_Ah=2.2)
+d.plot(cropped=True)
