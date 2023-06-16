@@ -6,6 +6,8 @@ from typing import Optional, Union
 
 class DischargeData():
     
+    allowable_x_columns = ('dod', 'soc', 'mAh', 'Ah')
+    
     def __init__(self, file: Union[Path, str], nominal_capacity_Ah: float, scale_x: Optional[bool]=False,
                  dod_lower: float=0, dod_upper: float=1):
         """initialize the discharge data
