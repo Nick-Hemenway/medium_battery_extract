@@ -20,6 +20,6 @@ for sheet in sheets:
 ax.legend(facecolor='white')
 fig.tight_layout()
 
-fig.savefig('outputs/raw_cell_data.png')
+fig.savefig('outputs/fake_spec_sheet_data_plot.png')
 
 

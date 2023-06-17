@@ -149,7 +149,7 @@ def plot_params(model, **kwargs):
     ax1.grid(False)
     ax.plot(dod, ocv)
     ax1.plot(dod, Rs, color='C1')
-    ax1.set_ylabel('Internal Resistance [$\Omega$]', color='C1')
+    ax1.set_ylabel(r'Internal Resistance [$\Omega$]', color='C1')
     ax.set_ylabel('OCV [V]', color='C0')
     ax.set_xlabel('DoD')
     ax1.tick_params(labelcolor='C1')
